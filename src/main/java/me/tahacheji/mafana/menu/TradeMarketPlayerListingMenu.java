@@ -7,6 +7,9 @@ import dev.triumphteam.gui.guis.PaginatedGui;
 import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.ItemType;
 import me.tahacheji.mafana.data.TradeMarket;
+import me.tahacheji.mafana.data.TradeOffer;
+import me.tahacheji.mafana.menu.offer.TradeMarketCreateOfferMenu;
+import me.tahacheji.mafana.menu.offer.TradeMarketOfferMenu;
 import me.tahacheji.mafana.util.NBTUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
@@ -25,7 +28,7 @@ public class TradeMarketPlayerListingMenu {
 
     public PaginatedGui getMarketShopGui(Player player) {
         PaginatedGui gui = Gui.paginated()
-                .title(Component.text(ChatColor.GOLD + "MafanaTradeNetwork"))
+                .title(Component.text(ChatColor.GOLD + "MafanaTradeNetwork User Listings"))
                 .rows(6)
                 .pageSize(28)
                 .disableAllInteractions()
@@ -39,7 +42,7 @@ public class TradeMarketPlayerListingMenu {
 
         ItemStack closeShop = new ItemStack(Material.BARRIER);
         ItemMeta closeShopeta = closeShop.getItemMeta();
-        closeShopeta.setDisplayName(ChatColor.GRAY + "Close Shop");
+        closeShopeta.setDisplayName(ChatColor.GRAY + "Go Back");
         closeShopeta.setLore(lore);
         closeShop.setItemMeta(closeShopeta);
 
@@ -69,7 +72,7 @@ public class TradeMarketPlayerListingMenu {
         gui.setItem(18, new GuiItem(greystainedglass));
         gui.setItem(9, new GuiItem(greystainedglass));
         gui.setItem(49, new GuiItem(closeShop, event -> {
-            gui.close(player);
+            new TradeMarketMenu().getTradeMarketMenu(player);
         }));
         gui.setItem(6, 3, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Previous").asGuiItem(event -> gui.previous()));
         gui.setItem(6, 7, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Next").asGuiItem(event -> gui.next()));
@@ -80,14 +83,18 @@ public class TradeMarketPlayerListingMenu {
             gui.addItem(ItemBuilder.from(item).asGuiItem(e -> {
                 if (e.getClick() == ClickType.RIGHT) {
                     if(listing.getOfflinePlayer().getUniqueId().toString().equalsIgnoreCase(player.getUniqueId().toString())) {
+                        for(TradeOffer tradeOffer : listing.getTradeOfferList()) {
+                            tradeOffer.setX("1");
+                            MafanaTradeNetwork.getInstance().getTradeOfferData().setTradeOffer(tradeOffer);
+                        }
                         listing.removeListing();
                         getMarketShopGui(player).open(player);
                     } else {
-                        //open offer menu
+                        new TradeMarketCreateOfferMenu().getTradeMarketOffer(player, null, listing, "").open(player);
                     }
                 }
                 if (e.getClick() == ClickType.LEFT) {
-                    // open all offers made
+                    new TradeMarketOfferMenu().getTradeMarketOffer(player, listing, "").open(player);
                 }
             }));
         }

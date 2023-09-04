@@ -1,7 +1,5 @@
 package me.tahacheji.mafana.menu.offer;
 
-import de.rapha149.signgui.SignGUI;
-import de.rapha149.signgui.SignGUIAction;
 import dev.triumphteam.gui.builder.item.ItemBuilder;
 import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
@@ -10,7 +8,6 @@ import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.TradeMarket;
 import me.tahacheji.mafana.data.TradeOffer;
 import me.tahacheji.mafana.menu.TradeMarketMenu;
-import me.tahacheji.mafana.menu.TradeMarketPlayerListingMenu;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
@@ -24,11 +21,12 @@ import org.bukkit.inventory.meta.SkullMeta;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TradeMarketOfferMenu {
+public class TradeMarketOfferEventMenu {
 
-    public PaginatedGui getTradeMarketOffer(Player player, TradeMarket tradeMarket, String playerFilter) {
+
+    public PaginatedGui getTradeMarketOffer(Player player, boolean cancel) {
         PaginatedGui gui = Gui.paginated()
-                .title(Component.text(ChatColor.YELLOW + "Trade Offers"))
+                .title(Component.text(ChatColor.GOLD + "MafanaTradeNetwork Offers"))
                 .rows(6)
                 .pageSize(28)
                 .disableAllInteractions()
@@ -39,6 +37,7 @@ public class TradeMarketOfferMenu {
         newmeta.setDisplayName(ChatColor.GRAY + " ");
         newmeta.setLore(lore);
         greystainedglass.setItemMeta(newmeta);
+
 
         ItemStack closeShop = new ItemStack(Material.BARRIER);
         ItemMeta closeShopeta = closeShop.getItemMeta();
@@ -76,33 +75,31 @@ public class TradeMarketOfferMenu {
         }));
         gui.setItem(6, 3, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Previous").asGuiItem(event -> gui.previous()));
         gui.setItem(6, 7, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Next").asGuiItem(event -> gui.next()));
-
-        for(TradeOffer tradeOffer : MafanaTradeNetwork.getInstance().getTradeOfferData().getAllTradeOffer()) {
-            if(tradeOffer == null) {
-                continue;
-            }
-            if ((!playerFilter.isEmpty() && !tradeOffer.getPlayer().getName().equalsIgnoreCase(playerFilter)) || // Filter by note
-                    (tradeMarket != null && !tradeMarket.getUuid().toString().equalsIgnoreCase(tradeOffer.getTradeMarket().getUuid().toString()))) {
-                continue;
-            }
-            if(!tradeOffer.getX().equalsIgnoreCase("2")) {
-                continue;
-            }
-            gui.addItem(new GuiItem(getPlayerHead(tradeOffer.getPlayer().getName(), tradeOffer), event -> {
-                if(event.getClick() == ClickType.RIGHT) {
-                    new TradeMarketViewTradeOffer().getTradeMarketOffer(player, tradeOffer).open(player);
+        for(TradeOffer tradeOffer : MafanaTradeNetwork.getInstance().getTradeOfferData().getAllPlayerTradeOffers(player)) {
+            if (tradeOffer.getTradeMarket() != null) {
+                if (cancel && tradeOffer.getX().equalsIgnoreCase("1")) {
+                    gui.addItem(new GuiItem(getPlayerHead(tradeOffer.getTradeMarket().getPlayer().getName(), tradeOffer), event -> {
+                        if (event.getClick() == ClickType.RIGHT) {
+                            for (ItemStack itemStack : tradeOffer.getItemOffer()) {
+                                player.getInventory().addItem(itemStack);
+                            }
+                            MafanaTradeNetwork.getInstance().getTradeOfferData().removeTradeOffer(tradeOffer);
+                            new TradeMarketMenu().getTradeMarketMenu(player);
+                        }
+                    }));
+                } else if (!cancel && tradeOffer.getX().equalsIgnoreCase("3")) {
+                    gui.addItem(new GuiItem(getPlayerHead(tradeOffer.getTradeMarket().getPlayer().getName(), tradeOffer), event -> {
+                        if (event.getClick() == ClickType.RIGHT) {
+                            player.getInventory().addItem(tradeOffer.getTradeMarket().getItem());
+                            MafanaTradeNetwork.getInstance().getTradeOfferData().removeTradeOffer(tradeOffer);
+                            TradeMarket tradeMarket = tradeOffer.getTradeMarket();
+                            MafanaTradeNetwork.getInstance().getTradeMarketData().removeListing(tradeMarket);
+                            new TradeMarketMenu().getTradeMarketMenu(player);
+                        }
+                    }));
                 }
-            }));
+            }
         }
-        ItemStack searchItem = new ItemStack(Material.NAME_TAG);
-        ItemMeta searchItemMeta = searchItem.getItemMeta();
-        searchItemMeta.setDisplayName(ChatColor.YELLOW + "Player Filter: " + (playerFilter.isEmpty() ? "None" : playerFilter));
-        searchItem.setItemMeta(searchItemMeta);
-
-        gui.setItem(53, new GuiItem(searchItem, event -> {
-            event.getWhoClicked().closeInventory();
-            openSearchSign((Player) event.getWhoClicked(), tradeMarket, playerFilter);
-        }));
         return gui;
     }
 
@@ -126,7 +123,11 @@ public class TradeMarketOfferMenu {
         lore.add(ChatColor.DARK_GRAY + "Trade UUID: " + tradeOffer.getUuid().toString());
         lore.add(ChatColor.DARK_GRAY + "Note: " + tradeOffer.getNote());
         lore.add(ChatColor.DARK_GRAY + "");
-        lore.add(ChatColor.DARK_GRAY + "Right Click view offer!");
+        if(tradeOffer.getX().equalsIgnoreCase("1")) {
+            lore.add(ChatColor.DARK_GRAY + "Right Click To Redeem Offer!");
+        } else if(tradeOffer.getX().equalsIgnoreCase("3")) {
+            lore.add(ChatColor.DARK_GRAY + "Right Click To Redeem Item!");
+        }
         lore.add("------------------------");
         skullMeta.setLore(lore);
         playerHead.setItemMeta(skullMeta);
@@ -134,18 +135,5 @@ public class TradeMarketOfferMenu {
         return playerHead;
     }
 
-    public void openSearchSign(Player player, TradeMarket tradeMarket, String playerFilter) {
-        SignGUI.builder()
-                .setLines(null, "---------------", "Search", "MafanaMarket") // set lines
-                .setType(Material.DARK_OAK_SIGN) // set the sign type
-                .setHandler((p, result) -> { // set the handler/listener (called when the player finishes editing)
-                    String x = result.getLineWithoutColor(0);
-                    Player newPlayer = Bukkit.getPlayer(x);
-                    if (newPlayer == null) {
-                        return List.of(SignGUIAction.run(() -> getTradeMarketOffer(player,tradeMarket, x).open(player)),
-                                SignGUIAction.run(() -> player.sendMessage(ChatColor.RED + "MafanaMarket: PLAYER_NOT_FOUND")));
-                    }
-                    return List.of(SignGUIAction.run(() -> getTradeMarketOffer(player,tradeMarket, x).open(player)));
-                }).callHandlerSynchronously(MafanaTradeNetwork.getInstance()).build().open(player);
-    }
+
 }

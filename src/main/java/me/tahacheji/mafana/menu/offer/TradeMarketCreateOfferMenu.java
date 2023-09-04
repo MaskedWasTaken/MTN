@@ -8,6 +8,7 @@ import dev.triumphteam.gui.guis.GuiItem;
 import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.TradeMarket;
 import me.tahacheji.mafana.data.TradeOffer;
+import me.tahacheji.mafana.menu.TradeMarketMenu;
 import me.tahacheji.mafana.util.TradeUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
@@ -106,15 +107,15 @@ public class TradeMarketCreateOfferMenu {
         });
 
         gui.setItem(16, ItemBuilder.from(Material.BARRIER).setName(ChatColor.RED + "Click To Cancel Offer").asGuiItem(event -> {
-            gui.close(player);
+            new TradeMarketMenu().getTradeMarketMenu(player);
             sentOffer.set(false);
         }));
         gui.setItem(6, new GuiItem(tradeMarket.getItem()));
         gui.setItem(15, ItemBuilder.from(Material.IRON_INGOT).setName(ChatColor.GOLD + "Click To Send Offer").asGuiItem(event -> {
             if(!offer.isEmpty()) {
-                MafanaTradeNetwork.getInstance().getTradeOfferData().addTradeOffer(player, new TradeOffer(tradeMarket, player, offer, note, false, false));
+                MafanaTradeNetwork.getInstance().getTradeOfferData().setTradeOffer(new TradeOffer(tradeMarket, player, offer, note,  "2"));
                 sentOffer.set(true);
-                gui.close(player);
+                new TradeMarketMenu().getTradeMarketMenu(player);
             }
         }));
         gui.setItem(24, ItemBuilder.from(Material.NAME_TAG).setName(ChatColor.YELLOW + "Click To Set Note: " + note).asGuiItem(event -> {

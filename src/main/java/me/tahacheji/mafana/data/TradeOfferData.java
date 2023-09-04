@@ -4,9 +4,8 @@ import me.TahaCheji.mysqlData.MySQL;
 import me.TahaCheji.mysqlData.MysqlValue;
 import me.TahaCheji.mysqlData.SQLGetter;
 import me.tahacheji.mafana.util.EncryptionUtil;
-import org.bukkit.Bukkit;
+import org.bukkit.OfflinePlayer;
 import org.bukkit.entity.Player;
-import org.bukkit.inventory.ItemStack;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -19,11 +18,23 @@ public class TradeOfferData extends MySQL {
         super("localhost", "3306", "mafanation", "root", "");
     }
 
-    public void addPlayer(Player player) {
-        if (!sqlGetter.exists(player.getUniqueId())) {
-            sqlGetter.setString(new MysqlValue("NAME", player.getUniqueId(), player.getName()));
-            sqlGetter.setString(new MysqlValue("TRADE_OFFER", player.getUniqueId(), ""));
+    public void setTradeOffer(TradeOffer tradeOffer) {
+        UUID uuid;
+        if(tradeOffer.getUuid() != null) {
+             uuid = tradeOffer.getUuid();
+             System.out.println(1);
+        } else {
+            uuid = UUID.randomUUID();
+            tradeOffer.setUuid(uuid);
         }
+        sqlGetter.setString(new MysqlValue("NAME", uuid, tradeOffer.getPlayer().getName()));
+        sqlGetter.setString(new MysqlValue("TRADE_OFFER", uuid, new EncryptionUtil().encryptTradeOffer(tradeOffer)));
+        sqlGetter.setString(new MysqlValue("TRADE_UUID", uuid, uuid.toString()));
+        sqlGetter.setUUID(new MysqlValue("UUID", uuid, tradeOffer.getPlayer().getUniqueId()));
+    }
+
+    public void updateTradeOffer(TradeOffer tradeOffer) {
+        sqlGetter.setString(new MysqlValue("TRADE_OFFER", tradeOffer.getUuid(), new EncryptionUtil().encryptTradeOffer(tradeOffer)));
     }
 
     public List<TradeOffer> getAllTradeOffer() {
@@ -39,7 +50,7 @@ public class TradeOfferData extends MySQL {
                 if (playerUUID == null) {
                     continue;
                 }
-                allListings.addAll(new EncryptionUtil().decryptTradeOffer(tradeOffers));
+                allListings.add(new EncryptionUtil().decryptTradeOffer(tradeOffers));
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -48,12 +59,28 @@ public class TradeOfferData extends MySQL {
         return allListings;
     }
 
+    public List<TradeOffer> getAllPlayerTradeOffers(OfflinePlayer player) {
+        List<TradeOffer> tradeOfferList = new ArrayList<>();
+        for(TradeOffer tradeOffer : getAllTradeOffer()) {
+            if(tradeOffer.getPlayer().getUniqueId().toString().equalsIgnoreCase(player.getUniqueId().toString())) {
+                tradeOfferList.add(tradeOffer);
+            }
+        }
+        return tradeOfferList;
+    }
+
     public List<TradeOffer> getTradeMarketTradeOffers(TradeMarket tradeMarket) {
         List<TradeOffer> tradeOfferList = new ArrayList<>();
         if(tradeMarket == null) {
             return tradeOfferList;
         }
         for(TradeOffer tradeOffer : getAllTradeOffer()) {
+            if(tradeOffer == null) {
+                continue;
+            }
+            if(tradeOffer.getTradeMarket() == null) {
+                continue;
+            }
             if(tradeOffer.getTradeMarket().getUuid().toString().equalsIgnoreCase(tradeMarket.getUuid().toString())) {
                 tradeOfferList.add(tradeOffer);
             }
@@ -61,61 +88,17 @@ public class TradeOfferData extends MySQL {
         return tradeOfferList;
     }
 
-    public void removeTradeOffer(Player player, TradeOffer tradeOffer) {
-        List<TradeOffer> tradeOfferList = getAllPlayerTradeOffers(player);
-        tradeOfferList.remove(tradeOffer);
-        setTradeOffers(player, tradeOfferList);
+    public void removeTradeOffer(TradeOffer tradeOffer) {
+        sqlGetter.removeString(tradeOffer.getUuid().toString(), new MysqlValue("TRADE_UUID"));
     }
-
-    public void addTradeOffer(Player player, TradeOffer tradeOffer) {
-        List<TradeOffer> tradeOfferList = getAllPlayerTradeOffers(player);
-        UUID uuid = UUID.randomUUID();
-        tradeOffer.setUuid(uuid);
-        tradeOfferList.add(tradeOffer);
-        setTradeOffers(player, tradeOfferList);
-    }
-
-    public void setTradeOffer(Player player, TradeOffer newTradeOffer) {
-        // Get the list of all player's TradeOffers
-        List<TradeOffer> allPlayerTradeOffers = getAllPlayerTradeOffers(player);
-
-        // Check if the new TradeOffer already exists in the list
-        boolean found = false;
-        for (TradeOffer existingOffer : allPlayerTradeOffers) {
-            // You need to define a way to compare TradeOffers; for example, comparing unique IDs
-            if (existingOffer.getUuid().toString().equalsIgnoreCase(newTradeOffer.getUuid().toString())) {
-                // Update the existing TradeOffer with the new data
-                existingOffer.setCanceled(newTradeOffer.isCanceled());
-                existingOffer.setAccepted(newTradeOffer.isAccepted());
-                found = true;
-                break;
-            }
-        }
-
-        if (!found) {
-            // If the new TradeOffer doesn't exist, add it to the list
-            allPlayerTradeOffers.add(newTradeOffer);
-        }
-
-        // Save the updated list of TradeOffers back to the database
-        setTradeOffers(player, allPlayerTradeOffers);
-    }
-
-    public void setTradeOffers(Player player, List<TradeOffer> offers) {
-        sqlGetter.setString(new MysqlValue("TRADE_OFFER", player.getUniqueId(), new EncryptionUtil().encryptTradeOffer(offers)));
-    }
-
-    public List<TradeOffer> getAllPlayerTradeOffers(Player player) {
-        return new EncryptionUtil().decryptTradeOffer(sqlGetter.getString(player.getUniqueId(), new MysqlValue("TRADE_OFFER")));
-    }
-
 
     @Override
     public void connect() {
         super.connect();
         if (this.isConnected()) sqlGetter.createTable("market_player_offers",
                 new MysqlValue("NAME", ""),
-                new MysqlValue("TRADE_OFFER", "")
+                new MysqlValue("TRADE_OFFER", ""),
+                new MysqlValue("TRADE_UUID", "")
         );
     }
 

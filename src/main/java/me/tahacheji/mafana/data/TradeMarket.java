@@ -15,22 +15,41 @@ public class TradeMarket {
     private final ItemStack item;
 
     private final String note;
+    private boolean claimed;
     private List<TradeOffer> tradeOfferList;
+    private TradeOffer tradeOffer;
     private UUID uuid;
 
-    public TradeMarket(OfflinePlayer player, ItemStack item, String note) {
+    public TradeMarket(OfflinePlayer player, ItemStack item, String note, boolean claimed) {
         this.player = player;
         this.item = item;
         UUID uuid = UUID.randomUUID();
         this.note = note;
+        this.claimed = claimed;
         this.uuid = uuid;
     }
 
-    public TradeMarket(OfflinePlayer player, ItemStack item, String note, String uuid) {
+    public TradeMarket(OfflinePlayer player, ItemStack item, String note, boolean claimed, String uuid) {
         this.player = player;
         this.item = item;
         this.note = note;
+        this.claimed = claimed;
         this.uuid = UUID.fromString(uuid);
+    }
+
+    public TradeOffer getTradeOffer() {
+        return tradeOffer;
+    }
+
+    public void setTradeOffer(TradeOffer tradeOffer) {
+        this.tradeOffer = tradeOffer;
+    }
+    public boolean isClaimed() {
+        return claimed;
+    }
+
+    public void setClaimed(boolean claimed) {
+        this.claimed = claimed;
     }
 
     public void saveListing(){
@@ -66,8 +85,8 @@ public class TradeMarket {
     public OfflinePlayer getOfflinePlayer() {
         return player;
     }
-    public Player getPlayer() {
-        return player.getPlayer();
+    public OfflinePlayer getPlayer() {
+        return player;
     }
 
     public ItemStack getItem() {

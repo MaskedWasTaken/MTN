@@ -18,20 +18,29 @@ public final class MafanaTradeNetwork extends JavaPlugin {
 
     private TradeOfferData tradeOfferData;
 
+    private TradeMarketTransactionData tradeMarketTransaction;
+    private TradeManagerData tradeManagerData;
     @Override
     public void onEnable() {
         instance = this;
         tradeMarketData = new TradeMarketData();
         tradeOfferData = new TradeOfferData();
-
+        tradeMarketTransaction = new TradeMarketTransactionData();
+        tradeManagerData = new TradeManagerData();
+        tradeManagerData.connect();
         tradeMarketData.connect();
         tradeOfferData.connect();
+        tradeMarketTransaction.connect();
         getServer().getPluginManager().registerEvents(new PlayerJoinEvent(), this);
         getCommand("mt").setExecutor(new TradeCommand());
     }
 
-    @Override
-    public void onDisable() {
+    public TradeManagerData getTradeManagerData() {
+        return tradeManagerData;
+    }
+
+    public TradeMarketTransactionData getTradeMarketTransaction() {
+        return tradeMarketTransaction;
     }
 
     public TradeOfferData getTradeOfferData() {

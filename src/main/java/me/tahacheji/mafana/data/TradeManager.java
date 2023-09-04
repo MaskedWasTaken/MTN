@@ -14,6 +14,7 @@ import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.scheduler.BukkitTask;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -44,6 +45,8 @@ public class TradeManager {
     int[] otherUserSide = new int[]{5, 6, 7, 8, 14, 15, 16, 17, 24, 25, 26};
 
     boolean tradeFinished = false;
+    BukkitTask task = null;
+    boolean loggedTrade = false;
 
     public void openTradeGUI(boolean open) {
         tradeMenu = Gui.gui()
@@ -87,6 +90,7 @@ public class TradeManager {
                                     setPlayerAccept(false);
                                     updateAcceptButton(tradeMenu);
                                     updateOtherUsersGUI();
+                                    updateTradeButton();
                                     break;
                                 }
                             }
@@ -109,6 +113,7 @@ public class TradeManager {
                                 setPlayerAccept(false);
                                 updateAcceptButton(tradeMenu);
                                 updateOtherUsersGUI();
+                                updateTradeButton();
                                 break;
                             }
                         }
@@ -173,6 +178,11 @@ public class TradeManager {
                 }
                 player.getInventory().addItem(itemStack);
             }
+            if(!loggedTrade && !player2TradeManager.loggedTrade) {
+                MafanaTradeNetwork.getInstance().getTradeManagerData().addTradeManagerTransaction(new TradeManagerTransaction(player, player2TradeManager.getPlayer(), getPlayerItems(), player2TradeManager.getPlayerItems()));
+                loggedTrade = true;
+                player2TradeManager.loggedTrade = true;
+            }
             clearTradeMenu();
             player.closeInventory();
             destroyTradeManager();
@@ -190,6 +200,27 @@ public class TradeManager {
                 player.sendMessage(ChatColor.DARK_GRAY + "- " + itemStack.getItemMeta().getDisplayName() + ChatColor.DARK_GRAY + " x" + itemStack.getAmount());
             }
         }
+    }
+
+    public void updateTradeButton() {
+        tradeMenu.updateItem(21, ItemBuilder.from(Material.GRAY_WOOL).setName(ChatColor.DARK_GRAY + "TRADE CHANGE").asGuiItem());
+        if(task != null) {
+            task.cancel();
+        }
+        task = Bukkit.getScheduler().runTaskLater(MafanaTradeNetwork.getInstance(), new Runnable() {
+            @Override
+            public void run() {
+                GuiItem acceptButton = ItemBuilder.from(Material.RED_WOOL).name(getTradeStatus()).asGuiItem(e -> {
+                    toggleTradeAcceptance();
+                    updateAcceptButton(tradeMenu);
+                    finishTrade();
+                    player2TradeManager.finishTrade();
+                    updateOtherUsersGUI();
+                });
+
+                tradeMenu.updateItem(21, acceptButton);
+            }
+        }, 60);
     }
 
     public void updateOtherUsersGUI() {

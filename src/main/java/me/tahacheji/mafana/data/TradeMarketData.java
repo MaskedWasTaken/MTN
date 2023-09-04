@@ -36,6 +36,20 @@ public class TradeMarketData extends MySQL {
         sqlGetter.setString(new MysqlValue("NOTE", uuid, tradeMarket.getNote()));
 
         sqlGetter.setString(new MysqlValue("TRADE_UUID", uuid, uuid.toString()));
+        sqlGetter.setString(new MysqlValue("TRADE_CLAIMED", uuid, Boolean.toString(tradeMarket.isClaimed())));
+
+        sqlGetter.setUUID(new MysqlValue("UUID", uuid, tradeMarket.getPlayer().getUniqueId()));
+    }
+
+    public void setTradeMarket(TradeMarket tradeMarket) {
+        UUID uuid = tradeMarket.getUuid();
+        sqlGetter.setString(new MysqlValue("NAME", uuid, tradeMarket.getPlayer().getName()));
+        sqlGetter.setString(new MysqlValue("ITEM_NAME", uuid, NBTUtils.getString(tradeMarket.getItem(), "GameItemUUID")));
+        sqlGetter.setString(new MysqlValue("ITEM", uuid, new EncryptionUtil().encodeItem(tradeMarket.getItem())));
+        sqlGetter.setString(new MysqlValue("NOTE", uuid, tradeMarket.getNote()));
+
+        sqlGetter.setString(new MysqlValue("TRADE_UUID", uuid, uuid.toString()));
+        sqlGetter.setString(new MysqlValue("TRADE_CLAIMED", uuid, Boolean.toString(tradeMarket.isClaimed())));
 
         sqlGetter.setUUID(new MysqlValue("UUID", uuid, tradeMarket.getPlayer().getUniqueId()));
     }
@@ -47,6 +61,7 @@ public class TradeMarketData extends MySQL {
             List<String> playerUUIDs = sqlGetter.getAllString(new MysqlValue("UUID"));
             List<String> itemsData = sqlGetter.getAllString(new MysqlValue("ITEM"));
             List<String> noteData = sqlGetter.getAllString(new MysqlValue("NOTE"));
+            List<String> isClaimed = sqlGetter.getAllString(new MysqlValue("TRADE_CLAIMED"));
             List<String> listingUUIDStrings = sqlGetter.getAllString(new MysqlValue("TRADE_UUID"));
 
             for (int i = 0; i < listingUUIDs.size(); i++) {
@@ -57,6 +72,7 @@ public class TradeMarketData extends MySQL {
                 if (listingUUIDStrings.get(i).equalsIgnoreCase(uuidString)) {
                     String itemData = itemsData.get(i);
                     String note = noteData.get(i);
+                    boolean x = Boolean.parseBoolean(isClaimed.get(i));
 
                     // Check for null values before proceeding
                     if (playerUUID == null || itemData == null) {
@@ -66,7 +82,7 @@ public class TradeMarketData extends MySQL {
                     Player listingPlayer = Bukkit.getPlayer(playerUUID); // Assuming the player is online
                     ItemStack item = new EncryptionUtil().itemFromBase64(itemData);
 
-                    TradeMarket listing = new TradeMarket(listingPlayer, item, note, uuidString);
+                    TradeMarket listing = new TradeMarket(listingPlayer, item, note, x, uuidString);
                     return listing; // Found the matching TradeMarket
                 }
             }
@@ -97,6 +113,7 @@ public class TradeMarketData extends MySQL {
             List<String> playerUUIDs = sqlGetter.getAllString(new MysqlValue("UUID"));
             List<String> itemsData = sqlGetter.getAllString(new MysqlValue("ITEM"));
             List<String> noteData = sqlGetter.getAllString(new MysqlValue("NOTE"));
+            List<String> isClaimed = sqlGetter.getAllString(new MysqlValue("TRADE_CLAIMED"));
             List<String> listingUUIDStrings = sqlGetter.getAllString(new MysqlValue("TRADE_UUID"));
 
             for (int i = 0; i < listingUUIDs.size(); i++) {
@@ -104,6 +121,7 @@ public class TradeMarketData extends MySQL {
                 UUID playerUUID = (playerUUIDString != null) ? UUID.fromString(playerUUIDString) : null;
                 String itemData = itemsData.get(i);
                 String note = noteData.get(i);
+                boolean x = Boolean.parseBoolean(isClaimed.get(i));
                 String uuidString = listingUUIDStrings.get(i);
 
                 // Check for null values before proceeding
@@ -111,10 +129,10 @@ public class TradeMarketData extends MySQL {
                     continue;
                 }
 
-                Player listingPlayer = Bukkit.getPlayer(playerUUID); // Assuming the player is online
+                OfflinePlayer listingPlayer = Bukkit.getOfflinePlayer(playerUUID); // Assuming the player is online
                 ItemStack item = new EncryptionUtil().itemFromBase64(itemData);
 
-                TradeMarket listing = new TradeMarket(listingPlayer, item, note, uuidString);
+                TradeMarket listing = new TradeMarket(listingPlayer, item, note,x, uuidString);
                 listing.setTradeOfferList(MafanaTradeNetwork.getInstance().getTradeOfferData().getTradeMarketTradeOffers(listing));
                 allListings.add(listing);
             }
@@ -137,6 +155,7 @@ public class TradeMarketData extends MySQL {
                 new MysqlValue("ITEM_NAME", ""),
                 new MysqlValue("ITEM", ""),
                 new MysqlValue("NOTE", ""),
+                new MysqlValue("TRADE_CLAIMED", ""),
                 new MysqlValue("TRADE_UUID","")
         );
     }

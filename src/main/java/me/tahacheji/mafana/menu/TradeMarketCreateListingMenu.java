@@ -45,6 +45,16 @@ public class TradeMarketCreateListingMenu {
         setNoteMeta.setDisplayName(ChatColor.YELLOW + "Click To Set Note");
         setNote.setItemMeta(setNoteMeta);
 
+        ItemStack closeShop = new ItemStack(Material.BARRIER);
+        ItemMeta closeShopeta = closeShop.getItemMeta();
+        closeShopeta.setDisplayName(ChatColor.GRAY + "Go Back");
+        closeShopeta.setLore(new ArrayList<>());
+        closeShop.setItemMeta(closeShopeta);
+
+        gui.setItem(34, new GuiItem(closeShop, event -> {
+            new TradeMarketMenu().getTradeMarketMenu(player);
+        }));
+
         gui.setItem(28, new GuiItem(setNote, event -> {
             gui.getInventory().setItem(1, new ItemStack(Material.OAK_SIGN));
             openNoteSign(player, gui.getGuiItem(13).getItemStack());
@@ -53,9 +63,9 @@ public class TradeMarketCreateListingMenu {
 
         gui.setItem(31, new GuiItem(listItem, event -> {
             if(gui.getGuiItem(13).getItemStack().getType() != Material.AIR) {
-                MafanaTradeNetwork.getInstance().getTradeMarketData().addTradeMarket(new TradeMarket(player, gui.getGuiItem(13).getItemStack(), note));
+                MafanaTradeNetwork.getInstance().getTradeMarketData().addTradeMarket(new TradeMarket(player, gui.getGuiItem(13).getItemStack(), note, false));
                 x.set(true);
-                gui.close(player);
+                new TradeMarketMenu().getTradeMarketMenu(player);
             }
         }));
 

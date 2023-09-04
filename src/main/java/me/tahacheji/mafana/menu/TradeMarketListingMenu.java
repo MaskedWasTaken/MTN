@@ -10,6 +10,7 @@ import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.ItemType;
 import me.tahacheji.mafana.data.TradeMarket;
 import me.tahacheji.mafana.menu.offer.TradeMarketCreateOfferMenu;
+import me.tahacheji.mafana.menu.offer.TradeMarketOfferMenu;
 import me.tahacheji.mafana.util.NBTUtils;
 import net.kyori.adventure.text.Component;
 import org.bukkit.ChatColor;
@@ -27,13 +28,13 @@ public class TradeMarketListingMenu {
 
     public PaginatedGui getMarketShopGui(Player player, String noteFilter, String itemFilter, ItemType itemType) {
         PaginatedGui gui = Gui.paginated()
-                .title(Component.text(ChatColor.GOLD + "MafanaMarket All Listings"))
+                .title(Component.text(ChatColor.GOLD + "MafanaTradeNetwork All Listings"))
                 .rows(6)
                 .pageSize(28)
                 .disableAllInteractions()
                 .create();
         List<String> lore = new ArrayList<>();
-        ItemStack greystainedglass = new ItemStack(Material.BLUE_STAINED_GLASS_PANE);
+        ItemStack greystainedglass = new ItemStack(Material.ORANGE_STAINED_GLASS_PANE);
         ItemMeta newmeta = greystainedglass.getItemMeta();
         newmeta.setDisplayName(ChatColor.GRAY + " ");
         newmeta.setLore(lore);
@@ -41,7 +42,7 @@ public class TradeMarketListingMenu {
 
         ItemStack closeShop = new ItemStack(Material.BARRIER);
         ItemMeta closeShopeta = closeShop.getItemMeta();
-        closeShopeta.setDisplayName(ChatColor.GRAY + "Close Shop");
+        closeShopeta.setDisplayName(ChatColor.GRAY + "Go Back");
         closeShopeta.setLore(lore);
         closeShop.setItemMeta(closeShopeta);
 
@@ -71,28 +72,32 @@ public class TradeMarketListingMenu {
         gui.setItem(18, new GuiItem(greystainedglass));
         gui.setItem(9, new GuiItem(greystainedglass));
         gui.setItem(49, new GuiItem(closeShop, event -> {
-            gui.close(player);
+            new TradeMarketMenu().getTradeMarketMenu(player);
         }));
         gui.setItem(6, 3, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Previous").asGuiItem(event -> gui.previous()));
         gui.setItem(6, 7, ItemBuilder.from(Material.PAPER).setName(ChatColor.DARK_GRAY + "Next").asGuiItem(event -> gui.next()));
 
         for (TradeMarket listing : MafanaTradeNetwork.getInstance().getTradeMarketData().getAllListings()) {
             String listingItemType = NBTUtils.getString(listing.getItem(), "ItemType");
-
+            if(listing.isClaimed()) {
+                continue;
+            }
             if ((!noteFilter.isEmpty() && !listing.getNote().contains(noteFilter)) || // Filter by note
                     (!itemFilter.isEmpty() && !listing.getItem().getItemMeta().getDisplayName().contains(itemFilter)) || // Filter by item
                     (itemType != null && !matchesItemType(itemType, listingItemType))) { // Filter by itemType
                 continue;
             }
-
             ItemStack item = getItemStack(listing);
             item = NBTUtils.setString(item, "ListUUID", listing.getUuid().toString());
             gui.addItem(new GuiItem(item, event -> {
                 if (event.getClick() == ClickType.RIGHT) {
+                    if(!player.getUniqueId().toString().equalsIgnoreCase(listing.getPlayer().getUniqueId().toString())) {
+
+                    }
                     new TradeMarketCreateOfferMenu().getTradeMarketOffer(player, null, listing, "").open(player);
                 }
                 if (event.getClick() == ClickType.LEFT) {
-                    // open all offers made
+                    new TradeMarketOfferMenu().getTradeMarketOffer(player, listing, "").open(player);
                 }
             }));
         }
@@ -131,9 +136,9 @@ public class TradeMarketListingMenu {
         itemLore.add(ChatColor.DARK_GRAY + "");
         itemLore.add("------------------------");
         if (listing.getPlayer().isOnline()) {
-            itemLore.add(ChatColor.DARK_GRAY + "Seller: " + listing.getPlayer().getDisplayName() + " " + ChatColor.GREEN + "[ONLINE]");
+            itemLore.add(ChatColor.DARK_GRAY + "Seller: " + listing.getPlayer().getName() + " " + ChatColor.GREEN + "[ONLINE]");
         } else {
-            itemLore.add(ChatColor.DARK_GRAY + "Seller: " + listing.getPlayer().getDisplayName() + " " + ChatColor.RED + "[OFFLINE]");
+            itemLore.add(ChatColor.DARK_GRAY + "Seller: " + listing.getPlayer().getName() + " " + ChatColor.RED + "[OFFLINE]");
         }
         itemLore.add(ChatColor.DARK_GRAY + "Listing UUID: " + listing.getUuid().toString());
         itemLore.add(ChatColor.DARK_GRAY + "Note: " + listing.getNote());

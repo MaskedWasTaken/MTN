@@ -15,26 +15,23 @@ public class TradeOffer {
     private UUID uuid;
 
     private String note;
-    private boolean accepted;
-    private boolean canceled;
+    private String x;
 
 
-    public TradeOffer(TradeMarket tradeMarket,UUID uuid, OfflinePlayer player, List<ItemStack> itemOffer, String note, boolean accepted, boolean canceled) {
+    public TradeOffer(TradeMarket tradeMarket,UUID uuid, OfflinePlayer player, List<ItemStack> itemOffer, String note, String x) {
         this.tradeMarket = tradeMarket;
         this.player = player;
         this.itemOffer = itemOffer;
-        this.canceled = canceled;
-        this.accepted = accepted;
+        this.x = x;
         this.uuid = uuid;
         this.note = note;
     }
 
-    public TradeOffer(TradeMarket tradeMarket, OfflinePlayer player, List<ItemStack> itemOffer, String note, boolean accepted, boolean canceled) {
+    public TradeOffer(TradeMarket tradeMarket, OfflinePlayer player, List<ItemStack> itemOffer, String note, String x) {
         this.tradeMarket = tradeMarket;
         this.player = player;
         this.itemOffer = itemOffer;
-        this.canceled = canceled;
-        this.accepted = accepted;
+        this.x = x;
         this.note = note;
     }
 
@@ -55,21 +52,18 @@ public class TradeOffer {
         return uuid;
     }
 
-    public boolean isAccepted() {
-        return accepted;
+    public void setPlayer(OfflinePlayer player) {
+        this.player = player;
     }
 
-    public void setAccepted(boolean accepted) {
-        this.accepted = accepted;
+    public void setX(String x) {
+        this.x = x;
     }
 
-    public boolean isCanceled() {
-        return canceled;
+    public String getX() {
+        return x;
     }
 
-    public void setCanceled(boolean canceled) {
-        this.canceled = canceled;
-    }
 
     public OfflinePlayer getPlayer() {
         return player;

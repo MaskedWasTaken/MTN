@@ -2,6 +2,7 @@ package me.tahacheji.mafana.command;
 
 import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.TradeRequest;
+import me.tahacheji.mafana.menu.TradeManagerLogMenu;
 import me.tahacheji.mafana.menu.TradeMarketMenu;
 import me.tahacheji.mafana.util.TradeUtil;
 import net.md_5.bungee.api.chat.ClickEvent;
@@ -24,6 +25,11 @@ public class TradeCommand implements CommandExecutor {
             TradeUtil tradeUtil = new TradeUtil();
             if(args[0].equalsIgnoreCase("open")) {
                 new TradeMarketMenu().getTradeMarketMenu(senderPlayer);
+                return true;
+            }
+            if(args[0].equalsIgnoreCase("log")) {
+                new TradeManagerLogMenu().getTradeMarketTransactions(senderPlayer, "" , true).open(senderPlayer);
+                return true;
             }
             if (args[0].equalsIgnoreCase("trade")) {
                 if (tradeUtil.hasSentTradeRequest(senderPlayer)) {

@@ -1,9 +1,11 @@
 package me.tahacheji.mafana.util;
 import me.tahacheji.mafana.MafanaTradeNetwork;
+import me.tahacheji.mafana.data.TradeManagerTransaction;
 import me.tahacheji.mafana.data.TradeMarket;
 import me.tahacheji.mafana.data.TradeOffer;
 import org.bukkit.Bukkit;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Item;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.util.io.BukkitObjectInputStream;
@@ -30,25 +32,31 @@ public class EncryptionUtil {
         SECRET_KEY = getSecretKey("mafana");
     }
 
-    public String encryptTradeOffer(List<TradeOffer> tradeOfferList) {
+    public String encryptTradeOffers(List<TradeOffer> tradeOfferList) {
+        if (tradeOfferList == null) {
+            return null; // Handle null tradeOfferList gracefully
+        }
+
         List<String> list = new ArrayList<>();
         for (TradeOffer tradeOffer : tradeOfferList) {
+            if(tradeOffer.getTradeMarket() == null) {
+                continue;
+            }
             String playerUUID = tradeOffer.getPlayer().getUniqueId().toString();
             TradeMarket tradeMarket = tradeOffer.getTradeMarket();
             List<ItemStack> offer = tradeOffer.getItemOffer();
             String uuid = tradeOffer.getUuid().toString();
             String note = tradeOffer.getNote();
-            String acceptedValue = Boolean.toString(tradeOffer.isAccepted());
-            String canceledValue = Boolean.toString(tradeOffer.isCanceled());
+            String x = tradeOffer.getX();
 
             // Serialize each message using a custom format
-            String serializedMessage = playerUUID + "|" + tradeMarket.getUuid() + "|" + encodeItems(offer) + "|" + note + "|" + acceptedValue + "|" + canceledValue + "|" + uuid;
+            String serializedMessage = playerUUID + "|" + tradeMarket.getUuid() + "|" + encodeItems(offer) + "|" + note + "|" + x + "|" + uuid;
             list.add(serializedMessage);
         }
         return encryptList(list);
     }
 
-    public List<TradeOffer> decryptTradeOffer(String encryptedData) {
+    public List<TradeOffer> decryptTradeOffers(String encryptedData) {
         try {
             List<String> decryptedList = decryptToList(encryptedData);
 
@@ -56,18 +64,17 @@ public class EncryptionUtil {
 
             for (String decryptedMessage : decryptedList) {
                 String[] parts = decryptedMessage.split("\\|");
-                if (parts.length >= 7) {
+                if (parts.length >= 6) {
                     UUID uuid = UUID.fromString(parts[0]);
                     Player sender = Bukkit.getPlayer(uuid);
                     String tradeUUID = parts[1];
                     String offerUUID = parts[2];
                     String note = parts[3];
-                    String accepted = parts[4];
-                    String canceled = parts[5];
-                    UUID x = UUID.fromString(parts[6]);
+                    String valueX = parts[4];
+                    UUID x = UUID.fromString(parts[5]);
                     TradeMarket tradeMarket = MafanaTradeNetwork.getInstance().getTradeMarketData().getTradeMarketFromUUID(UUID.fromString(tradeUUID));
                     TradeOffer tradeOffer = new TradeOffer(tradeMarket, x, sender, decodeItems(offerUUID),
-                            note, Boolean.parseBoolean(accepted), Boolean.parseBoolean(canceled));
+                            note, valueX);
                     decryptedMessages.add(tradeOffer);
                 }
             }
@@ -76,6 +83,129 @@ public class EncryptionUtil {
         } catch (Exception e) {
             return new ArrayList<>();
         }
+    }
+
+    public String encryptTradeManagerTransaction(TradeManagerTransaction tradeManagerTransaction) {
+        String serializedMessage;
+        String player1 = tradeManagerTransaction.getPlayer1().getUniqueId().toString();
+        String player2 = tradeManagerTransaction.getPlayer2().getUniqueId().toString();
+
+        String player1Items = encodeItems(tradeManagerTransaction.getPlayer1Items());
+        String player2Items = encodeItems(tradeManagerTransaction.getPlayer2Items());
+
+        String time = tradeManagerTransaction.getTime();
+
+        String uuid = tradeManagerTransaction.getUuid().toString();
+        serializedMessage = player1 + "|" + player2  + "|" + player1Items + "|" + player2Items + "|" + time + "|" + uuid;
+        return encryptString(serializedMessage);
+    }
+
+    public TradeManagerTransaction decryptTradeManagerTransaction(String encryptedData) {
+        try {
+            String decryptedMessage = decryptToString(encryptedData);
+            String[] parts = decryptedMessage.split("\\|");
+
+            if (parts.length >= 6) {
+                OfflinePlayer player1 = Bukkit.getOfflinePlayer(parts[0]);
+                OfflinePlayer player2 = Bukkit.getOfflinePlayer(parts[1]);
+
+                List<ItemStack> player1Items = decodeItems(parts[2]);
+                List<ItemStack> player2Items = decodeItems(parts[3]);
+
+                String time = parts[4];
+                UUID uuid = UUID.fromString(parts[5]);
+                return new TradeManagerTransaction(player1, player2, player1Items, player2Items, time, uuid);
+            }
+        } catch (Exception e) {
+            // Handle decryption errors, e.g., log them
+        }
+
+        return null;
+    }
+
+    public String encryptTradeMarket(TradeMarket tradeMarket) {
+        String playerUUID = tradeMarket.getPlayer().getUniqueId().toString();
+        ItemStack itemStack = tradeMarket.getItem();
+        List<TradeOffer> tradeOfferList = tradeMarket.getTradeOfferList();
+        String note = tradeMarket.getNote();
+        String claimed = Boolean.toString(tradeMarket.isClaimed());
+        String uuid = tradeMarket.getUuid().toString();
+
+        String serializedMessage;
+        if(tradeOfferList != null) {
+            serializedMessage = playerUUID + "|" + encodeItem(itemStack) + "|" + encryptTradeOffers(tradeOfferList) + "|" + note + "|" + claimed + "|" + uuid;
+        } else {
+            serializedMessage = playerUUID + "|" + encodeItem(itemStack) + "|" + "NULL" + "|" + note + "|" + claimed + "|" + uuid;
+        }
+        return encryptString(serializedMessage);
+    }
+
+    public TradeMarket decryptTradeMarket(String encryptedData) {
+        try {
+            String decryptedMessage = decryptToString(encryptedData);
+            String[] parts = decryptedMessage.split("\\|");
+
+            if (parts.length >= 6) {
+                UUID uuid = UUID.fromString(parts[0]);
+                ItemStack itemStack = decodeItem(parts[1]);
+                List<TradeOffer> tradeOfferList = new ArrayList<>();
+                if(parts[2].equalsIgnoreCase("NULL")) {
+                    tradeOfferList = decryptTradeOffers(parts[2]);
+                }
+                String note = parts[3];
+                boolean claimed = Boolean.parseBoolean(parts[4]);
+                String marketUUID = parts[5];
+                OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(uuid);
+                TradeMarket tradeMarket = new TradeMarket(offlinePlayer, itemStack, note, claimed, marketUUID);
+                tradeMarket.setTradeOfferList(tradeOfferList);
+                return tradeMarket;
+            }
+        } catch (Exception e) {
+            // Handle decryption errors, e.g., log them
+        }
+
+        return null;
+    }
+
+    public String encryptTradeOffer(TradeOffer tradeOffer) {
+        String playerUUID = tradeOffer.getPlayer().getUniqueId().toString();
+        TradeMarket tradeMarket = tradeOffer.getTradeMarket();
+        List<ItemStack> offer = tradeOffer.getItemOffer();
+        String uuid = tradeOffer.getUuid().toString();
+        String note = tradeOffer.getNote();
+        String x = tradeOffer.getX();
+
+        // Serialize the TradeOffer using a custom format
+        String serializedMessage = playerUUID + "|" + encryptTradeMarket(tradeMarket) + "|" + encodeItems(offer) + "|" + note + "|" + x + "|" + uuid;
+
+        return encryptString(serializedMessage);
+    }
+
+    public TradeOffer decryptTradeOffer(String encryptedData) {
+        try {
+            String decryptedMessage = decryptToString(encryptedData);
+            String[] parts = decryptedMessage.split("\\|");
+
+            if (parts.length >= 6) {
+                UUID uuid = UUID.fromString(parts[0]);
+                Player sender = Bukkit.getPlayer(uuid);
+                String tradeUUID = parts[1];
+                String offerUUID = parts[2];
+                String note = parts[3];
+                String valueX = parts[4];
+                UUID x = UUID.fromString(parts[5]);
+                TradeMarket tradeMarket = decryptTradeMarket(tradeUUID);
+
+                TradeOffer tradeOffer = new TradeOffer(tradeMarket, x, sender, decodeItems(offerUUID),
+                        note, valueX);
+
+                return tradeOffer;
+            }
+        } catch (Exception e) {
+            // Handle decryption errors, e.g., log them
+        }
+
+        return null;
     }
 
 
@@ -110,6 +240,31 @@ public class EncryptionUtil {
             return Arrays.asList(decryptedString.split(","));
         } catch (Exception e) {
             return new ArrayList<>(); // Return an empty list if decryption fails
+        }
+    }
+
+    public String encryptString(String data) {
+        try {
+            Cipher cipher = Cipher.getInstance(CIPHER_INSTANCE);
+            cipher.init(Cipher.ENCRYPT_MODE, SECRET_KEY);
+
+            byte[] encryptedBytes = cipher.doFinal(data.getBytes(StandardCharsets.UTF_8));
+            return Base64.getEncoder().encodeToString(encryptedBytes);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    public String decryptToString(String encryptedString) {
+        try {
+            Cipher cipher = Cipher.getInstance(CIPHER_INSTANCE);
+            cipher.init(Cipher.DECRYPT_MODE, SECRET_KEY);
+
+            byte[] encryptedBytes = Base64.getDecoder().decode(encryptedString);
+            byte[] decryptedBytes = cipher.doFinal(encryptedBytes);
+            return new String(decryptedBytes, StandardCharsets.UTF_8);
+        } catch (Exception e) {
+            return null; // Return null if decryption fails
         }
     }
 

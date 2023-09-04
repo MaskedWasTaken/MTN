@@ -7,11 +7,14 @@ import dev.triumphteam.gui.guis.Gui;
 import dev.triumphteam.gui.guis.GuiItem;
 import me.tahacheji.mafana.MafanaTradeNetwork;
 import me.tahacheji.mafana.data.ItemType;
+import me.tahacheji.mafana.menu.offer.TradeMarketOfferMenu;
+import me.tahacheji.mafana.menu.offer.TradeMarketOfferStatusMenu;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
@@ -32,7 +35,7 @@ public class TradeMarketMenu {
                 .create();
 
         List<String> lore = new ArrayList<>();
-        ItemStack greystainedglass = new ItemStack(Material.BLACK_STAINED_GLASS_PANE);
+        ItemStack greystainedglass = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta newmeta = greystainedglass.getItemMeta();
         newmeta.setDisplayName(ChatColor.GRAY + " ");
         newmeta.setLore(lore);
@@ -40,6 +43,16 @@ public class TradeMarketMenu {
 
         tradeMarketGUI.setItem(10, ItemBuilder.from(getClickItem(ItemType.SWORD)).asGuiItem(e -> {
             new TradeMarketListingMenu().getMarketShopGui(player, "", "", ItemType.SWORD).open(player);
+        }));
+        tradeMarketGUI.setItem(26, ItemBuilder.from(Material.VILLAGER_SPAWN_EGG).setName(ChatColor.GREEN + "Offer Status").setLore("--------------------------", ChatColor.GOLD + "Click to view your offer status", "--------------------------").asGuiItem(event -> {
+            new TradeMarketOfferStatusMenu().getTradeMarketOffer(player).open(player);
+        }));
+        tradeMarketGUI.setItem(24, ItemBuilder.from(Material.PAPER).setName(ChatColor.GREEN + "Trade Logs").setLore("--------------------------",ChatColor.GOLD + "Right Click To View Offers","", ChatColor.GOLD + "Left Click To View Trades", "--------------------------").asGuiItem(event -> {
+            if (event.getClick() == ClickType.LEFT) {
+                new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, true).open(player);
+            } else if (event.getClick() == ClickType.RIGHT) {
+                new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, false).open(player);
+            }
         }));
         tradeMarketGUI.setItem(11, ItemBuilder.from(getClickItem(ItemType.STAFF)).asGuiItem(e -> {
             new TradeMarketListingMenu().getMarketShopGui(player, "", "", ItemType.STAFF).open(player);
@@ -78,7 +91,7 @@ public class TradeMarketMenu {
 
     public void openSearchSign(Player player) {
         SignGUI.builder()
-                .setLines(null, "---------------", "Search", "MafanaMarket") // set lines
+                .setLines(null, "---------------", "Search", "MTN") // set lines
                 .setType(Material.DARK_OAK_SIGN) // set the sign type
                 .setHandler((p, result) -> { // set the handler/listener (called when the player finishes editing)
                     String x = result.getLineWithoutColor(0);
