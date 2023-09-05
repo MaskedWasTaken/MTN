@@ -49,9 +49,9 @@ public class TradeMarketMenu {
         }));
         tradeMarketGUI.setItem(24, ItemBuilder.from(Material.PAPER).setName(ChatColor.GREEN + "Trade Logs").setLore("--------------------------",ChatColor.GOLD + "Right Click To View Offers","", ChatColor.GOLD + "Left Click To View Trades", "--------------------------").asGuiItem(event -> {
             if (event.getClick() == ClickType.LEFT) {
-                new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, true).open(player);
+               // new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, true).open(player);
             } else if (event.getClick() == ClickType.RIGHT) {
-                new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, false).open(player);
+               // new TradeMarketTransactionsMenu().getTradeMarketTransactions(player, false).open(player);
             }
         }));
         tradeMarketGUI.setItem(11, ItemBuilder.from(getClickItem(ItemType.STAFF)).asGuiItem(e -> {
